@@ -6,7 +6,7 @@
 
 ### Security operations, orchestrated.
 
-A security operations library for Claude Code — bringing together **287 skills, 37 commands, and 38 specialized subagents** to turn authorized security assessments into structured, evidence-backed reports.
+A security operations library for Claude Code, bringing together **287 skills, 37 commands, and 38 specialized subagents** to turn authorized security assessments into structured, evidence-backed reports.
 
 <p align="center">
   <img src="https://img.shields.io/badge/skills-287-1f6feb" />
@@ -33,11 +33,11 @@ It is an integrated security operations framework built around structured proced
 
 Every skill follows the same discipline:
 
-- **Authorize** — Verify the target and permitted scope before execution.
-- **Discover** — Map the attack surface using passive-first methodology.
-- **Assess** — Execute controlled security checks within authorized boundaries.
-- **Verify** — Distinguish confirmed vulnerabilities from inconclusive signals and false positives.
-- **Report** — Produce evidence-backed findings with severity, impact, and remediation.
+- **Authorize**: Verify the target and permitted scope before execution.
+- **Discover**: Map the attack surface using passive-first methodology.
+- **Assess**: Execute controlled security checks within authorized boundaries.
+- **Verify**: Distinguish confirmed vulnerabilities from inconclusive signals and false positives.
+- **Report**: Produce evidence-backed findings with severity, impact, and remediation.
 
 The objective is simple:
 
