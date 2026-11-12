@@ -1,437 +1,520 @@
 # wanted
 
-**A security operations library for Claude Code - 287 skills, 37 commands, and 38
-subagents that turn an authorized target into a finished, evidence-backed report.**
+### Security operations, orchestrated.
 
-![skills](https://img.shields.io/badge/skills-287-1f6feb)
-![commands](https://img.shields.io/badge/commands-37-1f6feb)
-![subagents](https://img.shields.io/badge/subagents-38-1f6feb)
-![domains](https://img.shields.io/badge/domains-24-1f6feb)
-![validated](https://img.shields.io/badge/validate-passing-2da44e)
-![license](https://img.shields.io/badge/license-MIT-444)
+A security operations library for Claude Code — bringing together **287 skills, 37 commands, and 38 specialized subagents** to turn authorized security assessments into structured, evidence-backed reports.
 
-Most "security skill" packs are a pile of prompts that tell a model to *try* something.
-`wanted` is built the other way around: every skill is a gated procedure with an
-authorization check at the top, a method in the middle, and a verdict at the bottom. It
-does not report a vulnerability because a payload looked interesting - it reports one when
-it can prove impact, and it says so plainly when it cannot. That single rule is what
-separates a useful engagement from a wall of false positives.
+<p align="center">
+  <img src="https://img.shields.io/badge/skills-287-1f6feb" />
+  <img src="https://img.shields.io/badge/commands-37-1f6feb" />
+  <img src="https://img.shields.io/badge/subagents-38-1f6feb" />
+  <img src="https://img.shields.io/badge/domains-24-1f6feb" />
+  <img src="https://img.shields.io/badge/validation-passing-2da44e" />
+  <img src="https://img.shields.io/badge/license-MIT-444444" />
+</p>
 
-It covers the whole arc of real work: reconnaissance, web and API testing, cloud and
-Kubernetes, Active Directory, mobile, malware and forensics, detection engineering, LLM and
-agent security, smart contracts, governance, and the reporting that ties it together. One
-schema, one discipline, 24 domains.
+<p align="center">
+  <b>Reconnaissance · Offensive Security · AppSec · Cloud · DFIR · AI Security · Reporting</b>
+</p>
 
 ---
 
-## What it does, concretely
+## Overview
 
-You describe a target in plain language, or call a command directly. Claude selects the
-right skill, confirms scope, runs the method, and writes the evidence to disk. A single
-recon call looks like this:
+Most security skill libraries provide isolated prompts for individual techniques.
 
-```
-/wanted:recon acme.example
+**wanted takes a different approach.**
 
-[recon-orchestrator] scope confirmed → *.acme.example
-  passive    certificate transparency   1,284 names
-  passive    passive DNS                   312 names
-  active     bounded DNS brute-force       +47 names
-  resolve    live hosts                  79 / 1,643
-  flag       subdomain-takeover candidates     2
-→ output/recon/inventory.md
-```
+It is an integrated security operations framework built around structured procedures, authorization gates, evidence collection, and reproducible verification.
 
-From there you move into the surface it found: `/wanted:api-audit`, `/wanted:hunt-sqli`,
-`/wanted:jwt-audit`, `/wanted:cloud-audit`, and finally `/wanted:report` to consolidate
-everything into an executive summary, technical findings, and a remediation roadmap.
+Every skill follows the same discipline:
 
-Nothing here is a black box. Each skill names the exact phases it runs, the evidence it
-captures, and the remediation it expects, so you can read a skill before you run it and
-know precisely what it will and will not do to a production system.
+- **Authorize** — Verify the target and permitted scope before execution.
+- **Discover** — Map the attack surface using passive-first methodology.
+- **Assess** — Execute controlled security checks within authorized boundaries.
+- **Verify** — Distinguish confirmed vulnerabilities from inconclusive signals and false positives.
+- **Report** — Produce evidence-backed findings with severity, impact, and remediation.
+
+The objective is simple:
+
+**A security finding should be demonstrated, not assumed.**
 
 ---
 
-## Proven on a live target, not just described
+## Quick Start
 
-`wanted` was run end to end against `brokencrystals.com`, a deliberately vulnerable
-application published for security testing. The engagement started from one gift the target
-left exposed - its OpenAPI specification - and mapped **63 endpoints** before sending a
-single test payload. From that map it produced **thirteen confirmed findings**, each with a
-verdict, a severity, captured evidence, and a fix:
+### Install as a Claude Code plugin
 
-| Finding | Class | Severity |
-|---|---|---|
-| Remote command execution as root (`/api/spawn`) | command injection | Critical |
-| Database credentials exposed (`/api/config`) | secret exposure | Critical |
-| Server-side file read via external entity (`/api/metadata`) | XXE | Critical |
-| Attacker-controlled `isAdmin` bound on registration (`/api/users/basic`) | mass assignment | Critical |
-| Hard-coded third-party tokens (`/api/secrets`) | secret exposure | High |
-| `admin`/`admin` accepted, admin token issued | broken authentication | High |
-| Arbitrary file read, leaked the Kubernetes pod name (`/api/file`) | path traversal | High |
-| Other users' PII returned without a token (`/api/users/*`) | BOLA | High |
-| Query broken by a single quote (`/api/partners/query`) | XPath injection | High |
-| Open redirect, verbose errors, user enumeration, missing headers | various | Medium / Low |
-
-The part that matters most is what it *didn't* do. Three endpoints that could cause lasting
-damage - a template renderer, an SSRF-capable fetcher, and the eight-variant JWT forge
-surface - were identified, documented, and deliberately left unexploited, marked
-`inconclusive` rather than forced. A scanner either floods those with noise or misses them
-entirely. `wanted` proves what it can prove cleanly and stops where proof would require
-harm. A second target, `ginandjuice.shop`, independently confirmed SQL injection and a
-JavaScript-context reflected XSS using the same discipline.
-
-Every request in both engagements was read-only or benign. No data was modified or deleted.
-
----
-
-## How it is built
-
-Four kinds of component, each with a job.
-
-**Skills** are the unit of work: one folder, one `SKILL.md`, one technique. The body is a
-gated procedure. It opens with prerequisites and an authorization gate, walks through phases
-that escalate from passive to active only within scope, specifies how to verify a result and
-what evidence to keep, then closes with impact, false-positive traps, and remediation. A
-skill runs when your request matches its description, or on demand as `/wanted:<name>`.
-
-**Subagents** are operators that run several skills toward a goal. `recon-orchestrator`
-chains passive recon, subdomain enumeration, content discovery, and port scanning into one
-prioritized inventory; `web-hunter` maps an application's surface to vulnerability classes
-and works through them; `scope-guardian` sits across the whole engagement and blocks
-anything out of bounds. Invoke one with `@agent-wanted:<name>`.
-
-**Commands** are the fast entrypoints - `/wanted:recon`, `/wanted:subdomains`,
-`/wanted:triage`, `/wanted:report` - thin front doors onto the skills and agents behind them.
-
-**Shared rules** (`_shared/`) are the contract every skill signs: scope and authorization,
-safe execution, untrusted-input handling, the gated workflow, the evidence-and-confidence
-model, plus references for CVSS, OWASP, MITRE ATT&CK, and the reporting template. Change the
-rule once and every skill inherits it. That is why files stay short: the discipline lives in
-one place instead of being copy-pasted 287 times.
-
-The evidence model is the spine. Every finding carries a verdict - `confirmed`,
-`inconclusive`, or `refuted` - a CVSS score justified by demonstrated impact, and a path to
-the proof on disk. "The endpoint reflected my input" is not a finding. "Two identities, one
-read the other's object, here is the request pair" is.
-
----
-
-## Inside the library
-
-287 skills across 24 domains and 38 technique groups. The whole map, by the numbers:
-
-| Domain | Skills | A sample of what is inside |
-|---|--:|---|
-| Offensive security | 88 | web 26 (`xss` `sqli` `ssrf` `ssti` `xxe` `idor` `command-injection` `path-traversal` `http-request-smuggling` `web-cache-poisoning` `prototype-pollution` `race-condition`), API 13 (`bola` `bfla` `mass-assignment` `jwt-attacks` `oauth-oidc-abuse` `graphql-abuse` `rate-limit-bypass`), recon/OSINT 8, Active Directory 6, auth 6, exploit-dev 5, post-exploitation 5, network 5, mobile 4, C2/red-team 4, social engineering 3, wireless 3 |
-| Defensive & blue team | 28 | DFIR 9 (`memory-forensics` `disk-forensics` `timeline-analysis` `ransomware-response`), CTI 6 (`threat-actor-profiling` `mitre-attack-mapping`), detection engineering 5 (`sigma-rule-authoring` `yara-rule-authoring` `detection-as-code`), threat hunting 4, blue-team ops 4 |
-| Application security | 24 | `semgrep-rule-authoring` `codeql-query-authoring` `sarif-triage` `dast-scanning` `secure-code-review` `authz-patterns` `input-validation` `crypto-usage-review` `sbom-generation` `malicious-dependency-detection` `slsa-provenance` `stride-modeling` `attack-tree` |
-| AI & LLM security | 19 | `prompt-injection` `jailbreak-testing` `data-leakage` `owasp-llm-top10` `rag-security` `guardrail-design` `excessive-agency-control` `agent-sandboxing` `multi-agent-trust` `memory-poisoning` `mcp-server-hardening` `mcp-tool-poisoning` `garak-probes` `pyrit-orchestration` |
-| Cloud & infrastructure | 17 | `aws-security-audit` `azure-security-audit` `gcp-security-audit` `cloud-iam-privesc` `cspm-posture` `k8s-rbac-audit` `pod-security-standards` `container-escape-analysis` `runtime-security-falco` `terraform-security-scan` `opa-rego-policy` |
-| Blockchain & Web3 | 12 | `reentrancy` `access-control-flaws` `oracle-manipulation` `flash-loan-attacks` `front-running-mev` `solidity-audit` `defi-protocol-audit` `bridge-security` `wallet-security` `slither-echidna-analysis` `foundry-poc` |
-| Malware & reverse engineering | 8 | `pe-analysis` `maldoc-analysis` `unpacking` `script-deobfuscation` `dynamic-sandbox-analysis` `ghidra-static-analysis` `c2-config-extraction` `yara-signature-generation` |
-| Governance, risk & compliance | 8 | `iso27001-isms` `soc2-readiness` `pci-dss` `hipaa` `nist-csf-mapping` `risk-assessment` `policy-authoring` `vendor-risk-management` |
-| Bug bounty | 8 | `program-scope-analysis` `recon-workflow` `attack-surface-mapping` `finding-triage` `poc-crafting` `report-writing` `responsible-disclosure` `retest-verification` |
-| Data privacy | 7 | `pii-discovery` `data-classification` `anonymization` `gdpr-kvkk-mapping` `dlp-policy-design` `linddun-privacy` |
-| EASM | 6 | `asset-attribution` `confidence-scoring` `false-positive-rejection` `subdomain-takeover-detection` `continuous-discovery` `exposure-risk-scoring` |
-| Cryptography | 6 | `tls-config-audit` `crypto-misuse-detection` `padding-oracle` `signature-replay` `post-quantum-readiness` `side-channel-intro` |
-| Identity & IAM | 6 | `iam-architecture-review` `privileged-access-pam` `jit-access-design` `non-human-identity` `federation-sso-security` `secrets-management` |
-| CI/CD & DevSecOps | 6 | `ci-cd-pipeline-security` `runner-hardening` `secret-scanning-in-pipeline` `sast-dast-in-pipeline` `artifact-integrity-attestation` `pipeline-threat-model` |
-| Hardware & IoT | 5 | `firmware-analysis` `uart-jtag-access` `spi-flash-dump` `iot-protocol-attacks` `side-channel-intro` |
-| ML model security | 5 | `adversarial-examples` `data-poisoning-ml` `model-extraction-defense` `membership-inference` `model-serialization-security` |
-| OT / ICS / SCADA | 5 | `modbus-dnp3-security` `plc-security` `purdue-model-review` `ics-network-segmentation` `ics-threat-hunting` |
-| Reporting & orchestration | 6 | `full-engagement` (run every skill/agent/command, one consolidated report) `executive-summary-writing` `technical-finding-report` `cvss-scoring` `remediation-roadmap` `risk-based-scoring` |
-| Email security | 4 | `email-authentication` `dmarc-enforcement` `phishing-detection` `bec-defense` |
-| Deception | 4 | `honeypot-deployment` `canary-tokens` `honeytoken-design` `deception-detection-engineering` |
-| Endpoint & app security | 4 | `browser-extension-security` `electron-app-security` `thick-client-audit` `ipc-local-attacks` |
-| Zero trust | 4 | `zta-architecture` `microsegmentation` `device-posture` `continuous-authentication` |
-| Vulnerability management | 4 | `vuln-prioritization-epss` `kev-tracking` `patch-verification` `risk-based-scoring` |
-| Red-team infrastructure | 3 | `redirector-detection` `opsec-checklist`, C2 operator tradecraft |
-
-But the 287 skills are only one of six moving parts. The rest of the tree is what turns a
-pile of techniques into an engagement.
-
-### 38 subagents - the operators
-
-Skills are techniques; subagents are the operators that run them toward a goal, pick the next
-move from a result, and hand off to each other. Invoke any with `@agent-wanted:<name>`.
-
-| Group | Subagents |
-|---|---|
-| Orchestration & governance (6) | `pentest-orchestrator` `recon-orchestrator` `scope-guardian` `evidence-manager` `report-aggregator` `purple-team-coordinator` |
-| Offensive operators (8) | `web-hunter` `api-hunter` `ad-attack-operator` `privesc-specialist` `exploit-developer` `osint-investigator` `bugbounty-autohunter` `wireless-auditor` |
-| Cloud, infra & AppSec (7) | `cloud-auditor` `k8s-security-agent` `iac-policy-agent` `code-auditor` `sast-triage-agent` `dependency-guardian` `secure-review-gate` |
-| Blue team, IR & intel (8) | `incident-responder` `forensics-examiner` `threat-hunter` `detection-engineer` `soc-analyst-l1` `soc-analyst-l2` `cti-analyst` `threat-modeler` |
-| AI & agent security (4) | `llm-red-teamer` `prompt-injection-auditor` `agent-safety-reviewer` `mcp-security-auditor` |
-| Specialist auditors (5) | `smart-contract-auditor` `defi-risk-agent` `malware-analyst` `mobile-auditor` `iam-reviewer` |
-
-### 37 commands - the entrypoints
-
-Front doors onto the skills and agents. Type `/wanted:<command>` to start a method without
-describing it.
-
-| Group | Commands |
-|---|---|
-| Recon & surface (4) | `recon` `subdomains` `portscan` `api-audit` |
-| Web & API hunts (8) | `hunt-sqli` `hunt-xss` `hunt-ssrf` `hunt-ssti` `hunt-xxe` `hunt-idor` `hunt-auth` `jwt-audit` |
-| Cloud, infra & code (6) | `cloud-audit` `k8s-audit` `iac-scan` `code-review-sec` `dep-audit` `secret-scan` |
-| Active Directory (1) | `kerberoast` |
-| AI security (3) | `llm-redteam` `prompt-inject-test` `mcp-audit` |
-| Blue team & detection (6) | `soc-triage` `hunt-threats` `sigma` `yara` `ioc-enrich` `forensics-triage` |
-| Specialist audits (4) | `mobile-audit` `contract-audit` `wifi-audit` `privesc-check` |
-| Triage & reporting (5) | `triage` `poc` `cvss` `threat-model` `report` |
-
-### The discipline layer - rules, MCP, and the shared contract
-
-This is the part no other library ships, and it is why a `wanted` run ends in a report
-instead of a transcript.
-
-**`_shared/` - the contract every skill signs (11 references).** `scope-authorization-rule`,
-`safe-execution-rules`, `untrusted-input-rule`, `gated-workflow-rule`,
-`evidence-confidence-rule`, plus the references each skill links instead of repeating:
-`cvss-reference`, `owasp-mappings`, `mitre-attack-reference`, `reporting-template`,
-`glossary`, and `output-formats` (the report-rendering contract). Change the rule once; all
-287 skills inherit it.
-
-**`rules/` - 12 secure-by-default rulesets** that drop into a developer's own repo so the same
-standard applies to the code being built, not just the test of it: `owasp-review-rules`,
-`secure-coding-cursorrules`, `sql-injection-prevention-rules`, `auth-hardening-rules`,
-`crypto-usage-rules`, `secrets-prevention-rules`, `iac-security-rules`, `k8s-security-rules`,
-`dependency-policy-rules`, `logging-rules`, `ai-safe-coding-rules`, `commit-hygiene-rules`.
-
-**`mcp/` - a tooling layer in two halves.** Four curated catalogs of the real-world tools each
-side of the house reaches for - `offensive-tooling`, `defensive-tooling`, `cloud-tooling`,
-`ai-security-tooling` - and five hardening patterns for building MCP servers safely:
-`mcp-server-authoring`, `mcp-auth-security`, `mcp-sandboxing`, `mcp-tool-schema-design`,
-`run-tool-gateway-pattern`.
-
-**`_meta/`** carries the `AUTHORING-STANDARD.md` schema and `validate.py`, the quality gate
-that fails the build on any schema break, missing trigger description, copied source, or
-defang artifact.
-
-Add it up: **287 skills + 38 subagents + 37 commands + 12 rulesets + 9 MCP references + 11
-shared-contract files = 394 purpose-built artifacts**, under one schema, enforced by one gate.
-The complete, linkable index of every skill lives in [`CATALOG.md`](CATALOG.md).
-
-### One command to run it all
-
-`full-engagement` is the conductor. Point it at one authorized target and it selects every
-skill, subagent, and command that applies, runs them in a gated passive-before-active order,
-pulls each one's findings into a single deduplicated set, scores them on one evidence model,
-and writes the report:
-
-```
-/wanted:full-engagement acme.example format: pdf,json
-
-[scope-guardian]       scope confirmed → *.acme.example
-[recon-orchestrator]   surface mapped          79 live hosts
-[web-hunter]           xss·sqli·ssrf·idor      4 confirmed
-[api-hunter]           bola·bfla·jwt           3 confirmed
-[cloud-auditor]        iam·exposure            2 confirmed
-[evidence-manager]     dedup + verdicts        9 confirmed · 3 inconclusive
-[report-aggregator]    rendered
-→ output/report.pdf  output/report.json
-```
-
-No finding is left inside a subagent's transcript - they all land in one report, each with a
-verdict, a CVSS vector, and a path to its proof.
-
----
-
-## Where it stands against the field
-
-Measured against the most-referenced purpose-built security skill libraries - fork mirrors
-and re-uploads of other people's work left out - with counts pulled live from the GitHub API
-and quality sampled from real `SKILL.md` files:
-
-| Repository | Skills | Focus |
-|---|---:|---|
-| **wanted** | **287** | **the full arc, 24 domains, validated end to end** |
-| trailofbits/skills | 105 | application security, reverse engineering, fuzzing |
-| trilwu/secskills | 94 | web, API, Active Directory |
-| elementalsouls/Claude-BugHunter | 83 | bug bounty |
-| SnailSploit/Claude-Red | 79 | offensive |
-| transilienceai, Masriyan, ljagiello, Claude-OSINT, android-re | 50-1 | narrower scopes |
-
-The largest purpose-built security skill library of the group, and it is not close - nearly
-three times the next one. Size is the least of it. `wanted` is the only entry here with a
-single enforced schema, trigger-style descriptions on 100% of its skills, and an evidence
-model - verdict, CVSS, proof path - on every finding, where most of the field has none at
-all. It is the only one with a dedicated API suite: thirteen skills covering BOLA, BFLA, mass
-assignment, and the full JWT and OAuth surface, against rivals that offer one or two. And it
-is the only one that ships real orchestration - subagents and commands wired into the skills
-- instead of a flat list of prompts.
-
-A few of the others go deeper inside a single lane, and that depth is real: Trail of Bits on
-fuzzing, Claude-Red on exploit development. None come close on breadth, on consistency, or on
-the evidence discipline that turns a run into a report - and every file in this tree was
-written from scratch, the one thing no fork will ever claim.
-
----
-
-## Principles
-
-Authorization is not optional. Every offensive skill opens with a scope check, and
-`scope-guardian` enforces it for the whole engagement. Nothing out of bounds runs.
-
-Passive before active, always. Reconnaissance begins on free public sources - certificate
-transparency, public DNS, archives - and escalates to active, noisier techniques only once
-scope allows. You can map a target completely before touching it.
-
-No API keys required. Not one skill needs a key to function. A handful can optionally use
-Shodan, Censys, SecurityTrails, or VirusTotal to widen their results, but without them they
-fall back to free sources and keep working. The skills that mention API keys at all mostly
-hunt for leaked ones.
-
-Evidence over assertion, and remediation over bravado. A finding without proof is a lead,
-not a result, and a skill that only knows how to break something is half a skill. Every one
-of them ends with the fix.
-
-Original, end to end. Coverage was learned by analyzing 17,219 open-source skills; not one
-file was copied. There is no `inspired_by`, no `source`, no borrowed payload anywhere in the
-tree, and a CI check fails the build if any appears.
-
----
-
-## Install and use
-
-Inside Claude Code, add the marketplace and install the plugin:
-
-```
+```bash
 /plugin marketplace add qw3r1y/wanted
 /plugin install wanted@wanted
 ```
 
-Single step, on Claude Code 2.1.275 or newer:
+Or install directly:
 
-```
+```bash
 /plugin install wanted --marketplace qw3r1y/wanted
 ```
 
-Or try it for one session without installing anything:
+### Run your first assessment
 
 ```bash
-claude --plugin-dir /path/to/wanted
+/wanted:recon acme.example
 ```
 
-### Manual install - download and drop in
-
-No marketplace needed. Download the repository (the green **Code → Download ZIP** button, or
-`git clone`) and copy the skills straight into Claude's skills directory - Claude discovers
-them on the next start.
-
-**Claude Code** reads skills from `~/.claude/skills/` (user scope) or `.claude/skills/` in a
-project. Copy the folders in:
+Run a complete engagement:
 
 ```bash
-# all of them at once
-cp -r wanted/skills/* ~/.claude/skills/
-
-# or just the ones you want
-cp -r wanted/skills/full-engagement ~/.claude/skills/
-cp -r wanted/skills/bola           ~/.claude/skills/
+/wanted:full-engagement acme.example format: pdf,json
 ```
 
-On Windows that directory is `%USERPROFILE%\.claude\skills\`. Each skill is a self-contained
-folder with its `SKILL.md`, so a single skill works on its own - drop in one or drop in all
-287.
+For a single technique:
 
-**Claude desktop / web app** loads skills from **Settings → Capabilities → Skills**: click
-**Upload skill** and pick a skill folder (or its zip). Upload `full-engagement` for the
-one-shot engagement runner, or any individual technique you want on hand.
+```bash
+/wanted:api-audit acme.example
+/wanted:hunt-sqli acme.example
+/wanted:jwt-audit acme.example
+/wanted:cloud-audit
+/wanted:report format: pdf
+```
 
-Installed manually, skills are invoked by their own name; installed as the plugin they are
-namespaced under `wanted` (`/wanted:<name>`). Both ways run the same files.
-
-Then, as the plugin, everything is namespaced under `wanted`:
-
-| Kind | Invoke | Example |
-|---|---|---|
-| Command | `/wanted:<command>` | `/wanted:subdomains acme.example` |
-| Skill | `/wanted:<skill>`, or automatically on a match | `/wanted:bola`, `/wanted:xss` |
-| Subagent | `@agent-wanted:<agent>` | `@agent-wanted:recon-orchestrator` |
-
-The full list of skills, grouped by domain, is in [`CATALOG.md`](CATALOG.md). Plugins run
-with your privileges; read a skill before you run it against anything you care about.
+> Only assess targets for which you have explicit authorization. Review the relevant skill and its execution requirements before running active tests.
 
 ---
 
-## Repository layout
+## How It Works
 
+wanted connects individual security procedures through a shared orchestration and evidence model.
+
+```mermaid
+flowchart TD
+    A["Authorized Target"] --> B["Scope Guardian"]
+    B --> C["Reconnaissance"]
+    C --> D["Attack Surface Mapping"]
+    D --> E["Specialized Security Agents"]
+
+    E --> F["Offensive Security"]
+    E --> G["Application & API Security"]
+    E --> H["Cloud & Infrastructure"]
+    E --> I["Defensive Security"]
+
+    F --> J["Evidence Collection"]
+    G --> J
+    H --> J
+    I --> J
+
+    J --> K["Verification & Triage"]
+    K --> L["Finding Aggregation"]
+    L --> M["Security Report"]
+
+    M --> N["MD / PDF / JSON / SARIF / HTML / CSV"]
 ```
+
+### The four core components
+
+| Component | Purpose |
+|---|---|
+| Skills | Structured, reusable security procedures |
+| Subagents | Specialized operators coordinating multiple skills |
+| Commands | Direct entrypoints for common security workflows |
+| Shared Rules | Authorization, execution safety, evidence, and reporting standards |
+
+Together, these components provide a consistent workflow across 24 security domains.
+
+---
+
+## Security by Design
+
+The framework is built around five principles.
+
+### 1. Authorization First
+
+Every offensive skill begins with an authorization and scope check. The `scope-guardian` subagent provides engagement-wide scope enforcement.
+
+### 2. Passive Before Active
+
+Reconnaissance prioritizes public and passive sources before moving to active techniques. Active testing must remain within explicitly authorized boundaries.
+
+### 3. Evidence Over Assumptions
+
+A reflected payload is not automatically an XSS vulnerability. An interesting response is not automatically an exploit.
+
+Findings must be supported by reproducible evidence.
+
+### 4. Confidence-Based Verdicts
+
+Every finding receives one of three verdicts:
+
+| Verdict | Meaning |
+|---|---|
+| `confirmed` | Impact demonstrated with sufficient evidence |
+| `inconclusive` | Potential issue identified, but impact not established |
+| `refuted` | Investigation did not validate the suspected vulnerability |
+
+### 5. Remediation Included
+
+Findings include technical impact, reproduction guidance, CVSS scoring, and actionable remediation recommendations.
+
+---
+
+## Security Coverage
+
+**287 skills across 24 domains and 38 technique groups.**
+
+| Domain | Skills | Coverage |
+|---|---:|---|
+| Offensive Security | 88 | Web, API, AD, network, exploit development, red team |
+| Defensive Security | 28 | DFIR, threat hunting, CTI, detection engineering |
+| Application Security | 24 | SAST, DAST, secure code review, supply chain |
+| AI & LLM Security | 19 | Prompt injection, agent security, MCP, RAG |
+| Cloud & Infrastructure | 17 | AWS, Azure, GCP, Kubernetes, IaC |
+| Blockchain & Web3 | 12 | Smart contracts, DeFi, bridges, wallets |
+| Malware & Reverse Engineering | 8 | Malware analysis, unpacking, Ghidra, YARA |
+| Governance, Risk & Compliance | 8 | ISO 27001, SOC 2, PCI DSS, NIST |
+| Bug Bounty | 8 | Recon, triage, PoC, disclosure |
+| Data Privacy | 7 | PII, GDPR, KVKK, DLP |
+| EASM | 6 | Asset attribution, exposure scoring, takeover detection |
+| Cryptography | 6 | TLS, crypto misuse, side channels |
+| Identity & IAM | 6 | PAM, SSO, federation, secrets |
+| CI/CD & DevSecOps | 6 | Pipeline security, runner hardening, provenance |
+| Hardware & IoT | 5 | Firmware, UART, JTAG, IoT protocols |
+| ML Model Security | 5 | Data poisoning, adversarial ML, model extraction |
+| OT / ICS / SCADA | 5 | Industrial protocols, PLC, segmentation |
+| Reporting & Orchestration | 6 | Engagement orchestration, CVSS, reporting |
+| Email Security | 4 | SPF, DKIM, DMARC, phishing |
+| Deception | 4 | Honeypots, canary tokens, honeytokens |
+| Endpoint & App Security | 4 | Browser extensions, Electron, thick clients |
+| Zero Trust | 4 | Architecture, microsegmentation, device posture |
+| Vulnerability Management | 4 | EPSS, KEV, patch verification |
+| Red-Team Infrastructure | 3 | Redirectors, OPSEC, C2 infrastructure |
+
+**Explore the complete inventory:** [CATALOG.md](CATALOG.md)
+
+---
+
+## Specialized Subagents
+
+38 specialized subagents coordinate security workflows, analyze results, and delegate work to the appropriate operators.
+
+| Group | Specialized Agents |
+|---|---|
+| Orchestration & Governance | `pentest-orchestrator`, `recon-orchestrator`, `scope-guardian`, `evidence-manager`, `report-aggregator`, `purple-team-coordinator` |
+| Offensive Security | `web-hunter`, `api-hunter`, `ad-attack-operator`, `privesc-specialist`, `exploit-developer`, `osint-investigator`, `bugbounty-autohunter`, `wireless-auditor` |
+| Cloud & AppSec | `cloud-auditor`, `k8s-security-agent`, `iac-policy-agent`, `code-auditor`, `sast-triage-agent`, `dependency-guardian`, `secure-review-gate` |
+| Blue Team & Intelligence | `incident-responder`, `forensics-examiner`, `threat-hunter`, `detection-engineer`, `soc-analyst-l1`, `soc-analyst-l2`, `cti-analyst`, `threat-modeler` |
+| AI & Agent Security | `llm-red-teamer`, `prompt-injection-auditor`, `agent-safety-reviewer`, `mcp-security-auditor` |
+| Specialist Auditors | `smart-contract-auditor`, `defi-risk-agent`, `malware-analyst`, `mobile-auditor`, `iam-reviewer` |
+
+Invoke a specialized agent:
+
+```text
+@agent-wanted:recon-orchestrator
+@agent-wanted:web-hunter
+@agent-wanted:cloud-auditor
+@agent-wanted:code-auditor
+```
+
+---
+
+## Commands
+
+37 commands provide direct access to common security workflows.
+
+| Category | Commands |
+|---|---|
+| Reconnaissance | `recon`, `subdomains`, `portscan`, `api-audit` |
+| Web & API | `hunt-sqli`, `hunt-xss`, `hunt-ssrf`, `hunt-ssti`, `hunt-xxe`, `hunt-idor`, `hunt-auth`, `jwt-audit` |
+| Cloud & Code | `cloud-audit`, `k8s-audit`, `iac-scan`, `code-review-sec`, `dep-audit`, `secret-scan` |
+| Active Directory | `kerberoast` |
+| AI Security | `llm-redteam`, `prompt-inject-test`, `mcp-audit` |
+| Blue Team | `soc-triage`, `hunt-threats`, `sigma`, `yara`, `ioc-enrich`, `forensics-triage` |
+| Specialist Audits | `mobile-audit`, `contract-audit`, `wifi-audit`, `privesc-check` |
+| Triage & Reporting | `triage`, `poc`, `cvss`, `threat-model`, `report` |
+
+All commands use the plugin namespace:
+
+```bash
+/wanted:<command>
+```
+
+---
+
+## Full Engagement
+
+`full-engagement` is the orchestration entrypoint that connects the framework's capabilities into a single workflow.
+
+```bash
+/wanted:full-engagement acme.example format: all
+```
+
+The workflow coordinates:
+
+1. Scope validation and authorization.
+2. Passive reconnaissance and attack surface discovery.
+3. Applicable security assessments.
+4. Evidence collection and finding verification.
+5. Deduplication and severity assessment.
+6. Consolidated report generation.
+
+The output is a unified finding set rather than disconnected agent transcripts.
+
+Each finding contains:
+
+- Unique finding identifier and title
+- Verification verdict
+- Severity and CVSS vector
+- Vulnerability class and CWE mapping
+- Affected target
+- Evidence paths
+- Reproduction details
+- Demonstrated impact
+- Remediation recommendations
+
+---
+
+## Evidence & Reporting
+
+Every assessment is designed to produce structured, traceable results.
+
+| Format | Output | Use Case |
+|---|---|---|
+| Markdown | `report.md` | Technical review |
+| PDF | `report.pdf` | Client deliverables |
+| JSON | `report.json` | Automation and integrations |
+| SARIF | `report.sarif` | CI/CD and code scanning |
+| HTML | `report.html` | Interactive review |
+| CSV | `findings.csv` | Vulnerability management |
+| TXT | `report.txt` | Terminal and plain-text workflows |
+| ALL | All formats | Complete export |
+
+Examples:
+
+```bash
+/wanted:report format: pdf,json
+
+/wanted:full-engagement acme.example format: all
+```
+
+Reports are generated from a common structured finding set to maintain consistency across formats.
+
+PDF and HTML rendering require an available renderer. If rendering dependencies are unavailable, Markdown remains the primary deliverable.
+
+Sensitive values are redacted in client-facing PDF reports, while full evidence remains in the local output directory.
+
+---
+
+## Real-World Validation
+
+wanted has been exercised against deliberately vulnerable applications to evaluate its verification and reporting methodology.
+
+### Broken Crystals
+
+The engagement began with an exposed OpenAPI specification and mapped **63 API endpoints** before sending test payloads.
+
+The assessment produced 13 reported findings across multiple vulnerability classes, including:
+
+- Command injection
+- Secret exposure
+- XML External Entity (XXE)
+- Mass assignment
+- Broken authentication
+- Path traversal
+- Broken Object Level Authorization (BOLA)
+- XPath injection
+- Open redirect and information disclosure
+
+Importantly, potentially dangerous attack surfaces were documented as inconclusive when demonstrating impact would require harmful exploitation.
+
+### Gin and Juice
+
+An independent assessment identified:
+
+- SQL injection
+- JavaScript-context reflected XSS
+
+Both engagements followed a read-only or benign testing approach. No data was intentionally modified or deleted.
+
+---
+
+## Shared Security Standards
+
+The framework uses a centralized set of shared references to maintain consistent behavior across all skills.
+
+### `_shared/`
+
+The common security contract includes:
+
+- Scope and authorization requirements
+- Safe execution rules
+- Untrusted input handling
+- Gated workflow methodology
+- Evidence and confidence standards
+- CVSS reference
+- OWASP mappings
+- MITRE ATT&CK reference
+- Reporting templates
+- Glossary and output formats
+
+### `rules/`
+
+12 reusable security rulesets for development environments:
+
+- OWASP review rules
+- Secure coding
+- SQL injection prevention
+- Authentication hardening
+- Cryptography
+- Secrets prevention
+- IaC security
+- Kubernetes security
+- Dependency policies
+- Logging standards
+- AI-safe coding
+- Commit hygiene
+
+### `mcp/`
+
+Tooling references and secure MCP development patterns:
+
+**Tool catalogs**
+- Offensive tooling
+- Defensive tooling
+- Cloud tooling
+- AI security tooling
+
+**MCP security**
+- MCP server authoring
+- MCP authentication
+- Sandboxing
+- Tool schema design
+- Run-tool gateway patterns
+
+---
+
+## Installation Options
+
+### Claude Code Plugin
+
+```bash
+/plugin marketplace add qw3r1y/wanted
+/plugin install wanted@wanted
+```
+
+### Local Plugin Development
+
+```bash
+git clone https://github.com/qw3r1y/wanted.git
+cd wanted
+
+claude --plugin-dir .
+```
+
+### Manual Skill Installation
+
+Copy all skills:
+
+```bash
+cp -r wanted/skills/* ~/.claude/skills/
+```
+
+Or install selected skills:
+
+```bash
+cp -r wanted/skills/full-engagement ~/.claude/skills/
+cp -r wanted/skills/bola ~/.claude/skills/
+```
+
+Windows:
+
+```powershell
+%USERPROFILE%\.claude\skills\
+```
+
+Claude discovers manually installed skills on its next start.
+
+### Claude Desktop / Web
+
+Skills can also be uploaded through:
+
+**Settings → Capabilities → Skills → Upload skill**
+
+Upload an individual skill folder or its ZIP archive.
+
+---
+
+## Repository Structure
+
+```text
 wanted/
 ├── .claude-plugin/
-│   ├── plugin.json          plugin manifest
-│   └── marketplace.json     marketplace manifest
-├── skills/<name>/SKILL.md   287 skills, one folder each  ->  /wanted:<name>
-├── commands/<name>.md       37 entrypoint commands       ->  /wanted:<name>
-├── agents/<name>.md         38 subagents                 ->  @agent-wanted:<name>
-├── _shared/                 the contract every skill signs (authorization, safe
-│                            execution, evidence, CVSS, OWASP, ATT&CK, reporting, output)
-├── _meta/
-│   ├── AUTHORING-STANDARD.md the schema every skill follows
-│   └── validate.py           the quality gate
-├── rules/ · mcp/            supporting reference material
-├── CATALOG.md               all skills grouped by domain
+│   ├── plugin.json
+│   └── marketplace.json
+│
+├── skills/              # 287 security skills
+├── agents/              # 38 specialized subagents
+├── commands/            # 37 command entrypoints
+│
+├── _shared/             # Shared security contract
+├── _meta/               # Schema and validation
+│
+├── rules/               # 12 security rulesets
+├── mcp/                 # MCP tooling and references
+│
+├── CATALOG.md           # Complete skill catalog
 └── README.md
 ```
 
-Every skill follows one layout: frontmatter (`name`, a trigger-style `description`, `type`,
-`domain`, `maturity`, `tools`, `references`, `license`, `version`), then a body that runs
-When to use → Prerequisites → Procedure in gated phases → Verification and evidence → Impact
-escalation → False positives and pitfalls → Remediation → References.
+Every skill follows a common schema covering prerequisites, authorization, execution phases, verification, evidence, impact, false positives, remediation, and references.
 
-## Quality gate
+---
+
+## Validation
+
+The repository includes a validation system to enforce consistency across the library.
+
+Run:
 
 ```bash
 python _meta/validate.py
 ```
 
-It checks the schema, the trigger-style descriptions, originality (no copied source), the
-absence of defanged artifacts, and the integrity of every `_shared` reference. The tree
-ships clean, and `claude plugin validate .` passes.
+The validator checks:
 
-## Output formats
+- Skill schema compliance
+- Trigger-style descriptions
+- Originality requirements
+- Defanged artifact restrictions
+- Shared reference integrity
 
-When a run finishes, the findings are not a wall of chat text - they are a structured record
-set written to `output/`, then rendered into whatever deliverable you need. Every finding is
-one object (id, title, verdict, severity, CVSS score and vector, class/CWE, target, evidence
-paths, reproduction, impact, remediation); each format below is just a projection of that
-same set, so they never contradict each other. Pick one with a `format:` argument, or `all`.
+Claude plugin validation:
 
-| `format:` | Output file | Best for |
-|---|---|---|
-| `md` *(default)* | `output/report.md` | human review, GitHub, a fast read |
-| `pdf` | `output/report.pdf` | the client-facing deliverable, print, sign-off |
-| `json` | `output/report.json` | automation, dashboards, re-ingest, diffing two runs |
-| `sarif` | `output/report.sarif` | code-scanning findings into GitHub / IDE / CI gates |
-| `html` | `output/report.html` | an interactive, self-contained read with filters |
-| `csv` | `output/findings.csv` | triage queue, ticket import (Jira / ServiceNow), pivots |
-| `txt` | `output/report.txt` | terminals, email bodies, air-gapped notes |
-| `all` | every file above | one record set, every projection at once |
-
-```
-/wanted:report format: pdf,json
-/wanted:full-engagement acme.example format: all
+```bash
+claude plugin validate .
 ```
 
-PDF and HTML are rendered from the Markdown (`pandoc`, or a headless-browser print); if no
-renderer is installed the run says so and leaves the Markdown as the deliverable rather than
-failing quietly. Client PDFs redact captured secrets to a last-4 preview - the full value
-stays only in `output/` on your disk. The full contract is in
-[`_shared/output-formats.md`](_shared/output-formats.md).
+---
 
-## Coverage
+## Design Principles
 
-Offensive web (26) and API (13), reconnaissance and EASM, Active Directory, network and
-wireless, exploit development and post-exploitation; defensive detection engineering, threat
-hunting, DFIR, and CTI; malware analysis and reverse engineering; application security,
-supply chain, and CI/CD; cloud, containers, and infrastructure-as-code; identity, zero
-trust, and IAM; LLM, agent, and MCP security, and adversarial ML; smart contracts and DeFi;
-hardware and IoT; OT/ICS/SCADA; cryptography, data privacy, email security, deception,
-governance, and bug bounty. Twenty-four domains, and the reporting discipline to turn any of
-them into a deliverable.
+**Authorization over assumption.**  
+No offensive workflow should proceed outside explicitly authorized scope.
+
+**Evidence over volume.**  
+A small number of verified findings is more valuable than hundreds of unconfirmed alerts.
+
+**Consistency over isolated prompts.**  
+A shared schema and security contract keep the entire library aligned.
+
+**Remediation over exploitation.**  
+The goal is not simply to identify weaknesses, but to explain how to fix them.
+
+**Transparency over black boxes.**  
+Every skill exposes its methodology, execution phases, and verification requirements.
+
+---
 
 ## License
 
-MIT. Each skill carries its own license field; all are MIT.
+MIT License.
+
+All skills include their own license metadata. The repository is distributed under the MIT License.
