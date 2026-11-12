@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/Sibernetik%20Madonna_%20Aran%C4%B1yor%20Candida.png" alt="wanted" width="100%" />
+</p>
+
 # wanted
 
 ### Security operations, orchestrated.
