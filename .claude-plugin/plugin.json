@@ -1,0 +1,24 @@
+{
+  "name": "wanted",
+  "version": "0.1.0",
+  "description": "Original, evidence-disciplined cybersecurity & AI-security skill library: 286 skills, 37 commands, 38 subagents across 24 domains. Authorized-testing framed, with scope gates, verdict/CVSS discipline, and remediation.",
+  "author": {
+    "name": "Hüseyin Can Taşdemir",
+    "url": "https://github.com/qw3r1y"
+  },
+  "homepage": "https://github.com/qw3r1y/wanted",
+  "repository": "https://github.com/qw3r1y/wanted",
+  "license": "MIT",
+  "keywords": [
+    "security",
+    "cybersecurity",
+    "pentest",
+    "bug-bounty",
+    "ai-security",
+    "recon",
+    "appsec",
+    "red-team",
+    "blue-team",
+    "skills"
+  ]
+}

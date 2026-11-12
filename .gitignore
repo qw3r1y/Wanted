@@ -1,0 +1,18 @@
+# engagement artifacts — never commit real findings/evidence
+output/
+*.sarif
+report.pdf
+report.html
+
+# python
+__pycache__/
+*.pyc
+
+# validator report (generated)
+_meta/validation-report.json
+
+# os / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

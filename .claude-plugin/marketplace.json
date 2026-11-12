@@ -1,0 +1,17 @@
+{
+  "name": "wanted",
+  "description": "Original cybersecurity & AI-security Agent Skills, commands, and subagents — evidence-disciplined, authorized-testing framed.",
+  "owner": {
+    "name": "Hüseyin Can Taşdemir",
+    "url": "https://github.com/qw3r1y"
+  },
+  "plugins": [
+    {
+      "name": "wanted",
+      "source": "./",
+      "description": "286 security & AI-security skills, 37 slash commands, 38 subagents across 24 domains. Scope-gated, verdict/CVSS discipline, remediation on every skill.",
+      "category": "security",
+      "tags": ["security", "pentest", "bug-bounty", "ai-security", "recon", "appsec"]
+    }
+  ]
+}
