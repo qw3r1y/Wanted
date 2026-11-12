@@ -1,6 +1,6 @@
 # wanted
 
-**A security operations library for Claude Code — 287 skills, 37 commands, and 38
+**A security operations library for Claude Code - 287 skills, 37 commands, and 38
 subagents that turn an authorized target into a finished, evidence-backed report.**
 
 ![skills](https://img.shields.io/badge/skills-287-1f6feb)
@@ -13,7 +13,7 @@ subagents that turn an authorized target into a finished, evidence-backed report
 Most "security skill" packs are a pile of prompts that tell a model to *try* something.
 `wanted` is built the other way around: every skill is a gated procedure with an
 authorization check at the top, a method in the middle, and a verdict at the bottom. It
-does not report a vulnerability because a payload looked interesting — it reports one when
+does not report a vulnerability because a payload looked interesting - it reports one when
 it can prove impact, and it says so plainly when it cannot. That single rule is what
 separates a useful engagement from a wall of false positives.
 
@@ -56,7 +56,7 @@ know precisely what it will and will not do to a production system.
 
 `wanted` was run end to end against `brokencrystals.com`, a deliberately vulnerable
 application published for security testing. The engagement started from one gift the target
-left exposed — its OpenAPI specification — and mapped **63 endpoints** before sending a
+left exposed - its OpenAPI specification - and mapped **63 endpoints** before sending a
 single test payload. From that map it produced **thirteen confirmed findings**, each with a
 verdict, a severity, captured evidence, and a fix:
 
@@ -74,8 +74,8 @@ verdict, a severity, captured evidence, and a fix:
 | Open redirect, verbose errors, user enumeration, missing headers | various | Medium / Low |
 
 The part that matters most is what it *didn't* do. Three endpoints that could cause lasting
-damage — a template renderer, an SSRF-capable fetcher, and the eight-variant JWT forge
-surface — were identified, documented, and deliberately left unexploited, marked
+damage - a template renderer, an SSRF-capable fetcher, and the eight-variant JWT forge
+surface - were identified, documented, and deliberately left unexploited, marked
 `inconclusive` rather than forced. A scanner either floods those with noise or misses them
 entirely. `wanted` proves what it can prove cleanly and stops where proof would require
 harm. A second target, `ginandjuice.shop`, independently confirmed SQL injection and a
@@ -101,8 +101,8 @@ prioritized inventory; `web-hunter` maps an application's surface to vulnerabili
 and works through them; `scope-guardian` sits across the whole engagement and blocks
 anything out of bounds. Invoke one with `@agent-wanted:<name>`.
 
-**Commands** are the fast entrypoints — `/wanted:recon`, `/wanted:subdomains`,
-`/wanted:triage`, `/wanted:report` — thin front doors onto the skills and agents behind them.
+**Commands** are the fast entrypoints - `/wanted:recon`, `/wanted:subdomains`,
+`/wanted:triage`, `/wanted:report` - thin front doors onto the skills and agents behind them.
 
 **Shared rules** (`_shared/`) are the contract every skill signs: scope and authorization,
 safe execution, untrusted-input handling, the gated workflow, the evidence-and-confidence
@@ -110,8 +110,8 @@ model, plus references for CVSS, OWASP, MITRE ATT&CK, and the reporting template
 rule once and every skill inherits it. That is why files stay short: the discipline lives in
 one place instead of being copy-pasted 287 times.
 
-The evidence model is the spine. Every finding carries a verdict — `confirmed`,
-`inconclusive`, or `refuted` — a CVSS score justified by demonstrated impact, and a path to
+The evidence model is the spine. Every finding carries a verdict - `confirmed`,
+`inconclusive`, or `refuted` - a CVSS score justified by demonstrated impact, and a path to
 the proof on disk. "The endpoint reflected my input" is not a finding. "Two identities, one
 read the other's object, here is the request pair" is.
 
@@ -151,7 +151,7 @@ read the other's object, here is the request pair" is.
 But the 287 skills are only one of six moving parts. The rest of the tree is what turns a
 pile of techniques into an engagement.
 
-### 38 subagents — the operators
+### 38 subagents - the operators
 
 Skills are techniques; subagents are the operators that run them toward a goal, pick the next
 move from a result, and hand off to each other. Invoke any with `@agent-wanted:<name>`.
@@ -165,7 +165,7 @@ move from a result, and hand off to each other. Invoke any with `@agent-wanted:<
 | AI & agent security (4) | `llm-red-teamer` `prompt-injection-auditor` `agent-safety-reviewer` `mcp-security-auditor` |
 | Specialist auditors (5) | `smart-contract-auditor` `defi-risk-agent` `malware-analyst` `mobile-auditor` `iam-reviewer` |
 
-### 37 commands — the entrypoints
+### 37 commands - the entrypoints
 
 Front doors onto the skills and agents. Type `/wanted:<command>` to start a method without
 describing it.
@@ -181,27 +181,27 @@ describing it.
 | Specialist audits (4) | `mobile-audit` `contract-audit` `wifi-audit` `privesc-check` |
 | Triage & reporting (5) | `triage` `poc` `cvss` `threat-model` `report` |
 
-### The discipline layer — rules, MCP, and the shared contract
+### The discipline layer - rules, MCP, and the shared contract
 
 This is the part no other library ships, and it is why a `wanted` run ends in a report
 instead of a transcript.
 
-**`_shared/` — the contract every skill signs (11 references).** `scope-authorization-rule`,
+**`_shared/` - the contract every skill signs (11 references).** `scope-authorization-rule`,
 `safe-execution-rules`, `untrusted-input-rule`, `gated-workflow-rule`,
 `evidence-confidence-rule`, plus the references each skill links instead of repeating:
 `cvss-reference`, `owasp-mappings`, `mitre-attack-reference`, `reporting-template`,
 `glossary`, and `output-formats` (the report-rendering contract). Change the rule once; all
 287 skills inherit it.
 
-**`rules/` — 12 secure-by-default rulesets** that drop into a developer's own repo so the same
+**`rules/` - 12 secure-by-default rulesets** that drop into a developer's own repo so the same
 standard applies to the code being built, not just the test of it: `owasp-review-rules`,
 `secure-coding-cursorrules`, `sql-injection-prevention-rules`, `auth-hardening-rules`,
 `crypto-usage-rules`, `secrets-prevention-rules`, `iac-security-rules`, `k8s-security-rules`,
 `dependency-policy-rules`, `logging-rules`, `ai-safe-coding-rules`, `commit-hygiene-rules`.
 
-**`mcp/` — a tooling layer in two halves.** Four curated catalogs of the real-world tools each
-side of the house reaches for — `offensive-tooling`, `defensive-tooling`, `cloud-tooling`,
-`ai-security-tooling` — and five hardening patterns for building MCP servers safely:
+**`mcp/` - a tooling layer in two halves.** Four curated catalogs of the real-world tools each
+side of the house reaches for - `offensive-tooling`, `defensive-tooling`, `cloud-tooling`,
+`ai-security-tooling` - and five hardening patterns for building MCP servers safely:
 `mcp-server-authoring`, `mcp-auth-security`, `mcp-sandboxing`, `mcp-tool-schema-design`,
 `run-tool-gateway-pattern`.
 
@@ -233,15 +233,15 @@ and writes the report:
 → output/report.pdf  output/report.json
 ```
 
-No finding is left inside a subagent's transcript — they all land in one report, each with a
+No finding is left inside a subagent's transcript - they all land in one report, each with a
 verdict, a CVSS vector, and a path to its proof.
 
 ---
 
 ## Where it stands against the field
 
-Measured against the most-referenced purpose-built security skill libraries — fork mirrors
-and re-uploads of other people's work left out — with counts pulled live from the GitHub API
+Measured against the most-referenced purpose-built security skill libraries - fork mirrors
+and re-uploads of other people's work left out - with counts pulled live from the GitHub API
 and quality sampled from real `SKILL.md` files:
 
 | Repository | Skills | Focus |
@@ -251,20 +251,20 @@ and quality sampled from real `SKILL.md` files:
 | trilwu/secskills | 94 | web, API, Active Directory |
 | elementalsouls/Claude-BugHunter | 83 | bug bounty |
 | SnailSploit/Claude-Red | 79 | offensive |
-| transilienceai, Masriyan, ljagiello, Claude-OSINT, android-re | 50–1 | narrower scopes |
+| transilienceai, Masriyan, ljagiello, Claude-OSINT, android-re | 50-1 | narrower scopes |
 
-The largest purpose-built security skill library of the group, and it is not close — nearly
+The largest purpose-built security skill library of the group, and it is not close - nearly
 three times the next one. Size is the least of it. `wanted` is the only entry here with a
 single enforced schema, trigger-style descriptions on 100% of its skills, and an evidence
-model — verdict, CVSS, proof path — on every finding, where most of the field has none at
+model - verdict, CVSS, proof path - on every finding, where most of the field has none at
 all. It is the only one with a dedicated API suite: thirteen skills covering BOLA, BFLA, mass
 assignment, and the full JWT and OAuth surface, against rivals that offer one or two. And it
-is the only one that ships real orchestration — subagents and commands wired into the skills
-— instead of a flat list of prompts.
+is the only one that ships real orchestration - subagents and commands wired into the skills
+- instead of a flat list of prompts.
 
 A few of the others go deeper inside a single lane, and that depth is real: Trail of Bits on
 fuzzing, Claude-Red on exploit development. None come close on breadth, on consistency, or on
-the evidence discipline that turns a run into a report — and every file in this tree was
+the evidence discipline that turns a run into a report - and every file in this tree was
 written from scratch, the one thing no fork will ever claim.
 
 ---
@@ -274,8 +274,8 @@ written from scratch, the one thing no fork will ever claim.
 Authorization is not optional. Every offensive skill opens with a scope check, and
 `scope-guardian` enforces it for the whole engagement. Nothing out of bounds runs.
 
-Passive before active, always. Reconnaissance begins on free public sources — certificate
-transparency, public DNS, archives — and escalates to active, noisier techniques only once
+Passive before active, always. Reconnaissance begins on free public sources - certificate
+transparency, public DNS, archives - and escalates to active, noisier techniques only once
 scope allows. You can map a target completely before touching it.
 
 No API keys required. Not one skill needs a key to function. A handful can optionally use
@@ -314,10 +314,10 @@ Or try it for one session without installing anything:
 claude --plugin-dir /path/to/wanted
 ```
 
-### Manual install — download and drop in
+### Manual install - download and drop in
 
 No marketplace needed. Download the repository (the green **Code → Download ZIP** button, or
-`git clone`) and copy the skills straight into Claude's skills directory — Claude discovers
+`git clone`) and copy the skills straight into Claude's skills directory - Claude discovers
 them on the next start.
 
 **Claude Code** reads skills from `~/.claude/skills/` (user scope) or `.claude/skills/` in a
@@ -333,7 +333,7 @@ cp -r wanted/skills/bola           ~/.claude/skills/
 ```
 
 On Windows that directory is `%USERPROFILE%\.claude\skills\`. Each skill is a self-contained
-folder with its `SKILL.md`, so a single skill works on its own — drop in one or drop in all
+folder with its `SKILL.md`, so a single skill works on its own - drop in one or drop in all
 287.
 
 **Claude desktop / web app** loads skills from **Settings → Capabilities → Skills**: click
@@ -393,7 +393,7 @@ ships clean, and `claude plugin validate .` passes.
 
 ## Output formats
 
-When a run finishes, the findings are not a wall of chat text — they are a structured record
+When a run finishes, the findings are not a wall of chat text - they are a structured record
 set written to `output/`, then rendered into whatever deliverable you need. Every finding is
 one object (id, title, verdict, severity, CVSS score and vector, class/CWE, target, evidence
 paths, reproduction, impact, remediation); each format below is just a projection of that
@@ -417,7 +417,7 @@ same set, so they never contradict each other. Pick one with a `format:` argumen
 
 PDF and HTML are rendered from the Markdown (`pandoc`, or a headless-browser print); if no
 renderer is installed the run says so and leaves the Markdown as the deliverable rather than
-failing quietly. Client PDFs redact captured secrets to a last-4 preview — the full value
+failing quietly. Client PDFs redact captured secrets to a last-4 preview - the full value
 stays only in `output/` on your disk. The full contract is in
 [`_shared/output-formats.md`](_shared/output-formats.md).
 
